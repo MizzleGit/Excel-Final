@@ -28,12 +28,14 @@
         /// </summary>
         private void InitializeComponent()
         {
+            components = new System.ComponentModel.Container();
             btnBrowse = new Button();
             openExcel = new OpenFileDialog();
             btnModify = new Button();
             pbarMain = new ProgressBar();
             lblDebug = new Label();
             btnGlobal = new Button();
+            tipBtnBrowse = new ToolTip(components);
             SuspendLayout();
             // 
             // btnBrowse
@@ -43,6 +45,7 @@
             btnBrowse.Size = new Size(326, 168);
             btnBrowse.TabIndex = 0;
             btnBrowse.Text = "1. Ouvrir fichiers";
+            tipBtnBrowse.SetToolTip(btnBrowse, "Cliquez ici pour sélectionner les fichiers que vous souhaitez modifier!");
             btnBrowse.UseVisualStyleBackColor = true;
             btnBrowse.Click += btnBrowse_Click;
             // 
@@ -110,5 +113,6 @@
         private ProgressBar pbarMain;
         private Label lblDebug;
         private Button btnGlobal;
+        private ToolTip tipBtnBrowse;
     }
 }
