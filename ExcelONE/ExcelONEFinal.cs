@@ -372,6 +372,7 @@ namespace ExcelONE
             }
             else
             {
+                pbarMain.Value = 0;
                 // Variables
                 ExcelPackage masterPkg = new ExcelPackage();
                 ExcelWorksheet masterWs = masterPkg.Workbook.Worksheets.Add("Master");
@@ -379,14 +380,15 @@ namespace ExcelONE
                 ExcelRange[] masterData = new ExcelRange[8];
                 string[] fourFileYears = GetOnlyFourValues(fileYears);
                 string masterPath = "";
-                bool tryPassed = false;
+                pbarMain.Value = 10;
 
                 // Adding all data into an ExcelRange Array
                 for (int i = 0; i < 8; i++)
                 {
+                    pbarMain.Value++;
                     masterData[i] = mainWss[i].Cells[mainWss[i].Dimension.Start.Row + 1, mainWss[i].Dimension.Start.Column, mainWss[i].Dimension.End.Row, mainWss[i].Dimension.End.Column];
                 }
-
+                pbarMain.Value = 20;
                 // Creating the master file
                 try
                 {
@@ -399,6 +401,7 @@ namespace ExcelONE
                     {
                         masterWs.Column(i).AutoFit();
                     }
+                    pbarMain.Value = 70;
                     masterWs.Column(masterWs.Dimension.End.Column).Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
                     ExcelWorksheet masterPivotWs = masterPkg.Workbook.Worksheets.Add("Pivot");
                     ExcelRange masterUsedRange = masterWs.Cells[masterWs.Dimension.Start.Row, masterWs.Dimension.Start.Column, masterWs.Dimension.End.Row, masterWs.Dimension.End.Column];
@@ -412,15 +415,20 @@ namespace ExcelONE
                     ExcelPivotTableDataField masterMontantR = masterPivot.DataFields.Add(masterPivot.Fields["Montant réglé"]);
                     masterMontantE.Function = DataFieldFunctions.Sum;
                     masterMontantR.Function = DataFieldFunctions.Sum;
+                    pbarMain.Value = 90;
                     try
                     {
                         masterPkg.SaveAs(folderPath + "/global.xlsx");
+                        pbarMain.Value = 100;
+                        MessageBox.Show("Le fichier global a été crée!", "Fichier global", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
-                    finally
+                    catch
                     {
                         folderPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                         masterPath = Path.Combine(folderPath, "global.xlsx");
                         masterPkg.SaveAs(masterPath);
+                        pbarMain.Value = 100;
+                        MessageBox.Show("Le fichier global a été crée!", "Fichier global", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
                 catch (Exception ex)
@@ -428,6 +436,15 @@ namespace ExcelONE
                     MessageBox.Show("Exception rencontrée!\n\n" + ex, "Erreur!", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+        } // private void btnGlobal_Click(object sender, EventArgs e)
+
+        //
+        //
+        //
+
+        private void btnDestination_Click(object sender, EventArgs e)
+        {
+            //
         }
 
 

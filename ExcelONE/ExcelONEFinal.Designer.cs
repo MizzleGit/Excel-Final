@@ -105,6 +105,7 @@
             btnDestination.Text = "4. Modifiez le fichier de destination.";
             tipBtnDestination.SetToolTip(btnDestination, "Utilisez la fonction VLOOKUP sur globa.xlsx pour appliquer les modifications sur les données TR.");
             btnDestination.UseVisualStyleBackColor = true;
+            btnDestination.Click += btnDestination_Click;
             // 
             // ExcelONEFinal
             // 
