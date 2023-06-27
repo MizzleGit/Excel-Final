@@ -28,12 +28,75 @@
         /// </summary>
         private void InitializeComponent()
         {
-            components = new System.ComponentModel.Container();
+            btnBrowse = new Button();
+            openExcel = new OpenFileDialog();
+            btnModify = new Button();
+            pbarMain = new ProgressBar();
+            lblDebug = new Label();
+            SuspendLayout();
+            // 
+            // btnBrowse
+            // 
+            btnBrowse.Location = new Point(12, 12);
+            btnBrowse.Name = "btnBrowse";
+            btnBrowse.Size = new Size(326, 168);
+            btnBrowse.TabIndex = 0;
+            btnBrowse.Text = "1. Ouvrir fichiers";
+            btnBrowse.UseVisualStyleBackColor = true;
+            btnBrowse.Click += btnBrowse_Click;
+            // 
+            // openExcel
+            // 
+            openExcel.FileName = "Open File";
+            // 
+            // btnModify
+            // 
+            btnModify.Location = new Point(355, 12);
+            btnModify.Name = "btnModify";
+            btnModify.Size = new Size(328, 168);
+            btnModify.TabIndex = 1;
+            btnModify.Text = "2. Modifier les fichiers";
+            btnModify.UseVisualStyleBackColor = true;
+            btnModify.Click += btnModify_Click;
+            // 
+            // pbarMain
+            // 
+            pbarMain.Location = new Point(12, 404);
+            pbarMain.Name = "pbarMain";
+            pbarMain.Size = new Size(776, 34);
+            pbarMain.TabIndex = 2;
+            // 
+            // lblDebug
+            // 
+            lblDebug.AutoSize = true;
+            lblDebug.Font = new Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point);
+            lblDebug.Location = new Point(12, 363);
+            lblDebug.Name = "lblDebug";
+            lblDebug.Size = new Size(91, 21);
+            lblDebug.TabIndex = 3;
+            lblDebug.Text = "debugLabel";
+            // 
+            // ExcelONEFinal
+            // 
+            AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
-            Text = "Form1";
+            Controls.Add(lblDebug);
+            Controls.Add(pbarMain);
+            Controls.Add(btnModify);
+            Controls.Add(btnBrowse);
+            Name = "ExcelONEFinal";
+            Text = "ONE Recouvrement";
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
+
+        private Button btnBrowse;
+        private OpenFileDialog openExcel;
+        private Button btnModify;
+        private ProgressBar pbarMain;
+        private Label lblDebug;
     }
 }
