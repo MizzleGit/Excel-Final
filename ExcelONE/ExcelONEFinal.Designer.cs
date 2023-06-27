@@ -33,6 +33,7 @@
             btnModify = new Button();
             pbarMain = new ProgressBar();
             lblDebug = new Label();
+            btnGlobal = new Button();
             SuspendLayout();
             // 
             // btnBrowse
@@ -51,7 +52,7 @@
             // 
             // btnModify
             // 
-            btnModify.Location = new Point(355, 12);
+            btnModify.Location = new Point(357, 12);
             btnModify.Name = "btnModify";
             btnModify.Size = new Size(328, 168);
             btnModify.TabIndex = 1;
@@ -61,7 +62,7 @@
             // 
             // pbarMain
             // 
-            pbarMain.Location = new Point(12, 404);
+            pbarMain.Location = new Point(12, 430);
             pbarMain.Name = "pbarMain";
             pbarMain.Size = new Size(776, 34);
             pbarMain.TabIndex = 2;
@@ -70,17 +71,27 @@
             // 
             lblDebug.AutoSize = true;
             lblDebug.Font = new Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point);
-            lblDebug.Location = new Point(12, 363);
+            lblDebug.Location = new Point(12, 395);
             lblDebug.Name = "lblDebug";
             lblDebug.Size = new Size(91, 21);
             lblDebug.TabIndex = 3;
             lblDebug.Text = "debugLabel";
             // 
+            // btnGlobal
+            // 
+            btnGlobal.Location = new Point(12, 217);
+            btnGlobal.Name = "btnGlobal";
+            btnGlobal.Size = new Size(326, 168);
+            btnGlobal.TabIndex = 4;
+            btnGlobal.Text = "3. Créer un fichier global";
+            btnGlobal.UseVisualStyleBackColor = true;
+            // 
             // ExcelONEFinal
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
+            ClientSize = new Size(800, 475);
+            Controls.Add(btnGlobal);
             Controls.Add(lblDebug);
             Controls.Add(pbarMain);
             Controls.Add(btnModify);
@@ -98,5 +109,6 @@
         private Button btnModify;
         private ProgressBar pbarMain;
         private Label lblDebug;
+        private Button btnGlobal;
     }
 }

@@ -1,4 +1,5 @@
 using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using System;
 using System.Diagnostics;
 
@@ -15,6 +16,11 @@ namespace ExcelONE
         // Strings
         string folderPath = "";
         string fileName = "";
+        //
+
+        // Excel variables
+        List<ExcelPackage> mainPkgs = new List<ExcelPackage>();
+        List<ExcelWorksheet> mainWss = new List<ExcelWorksheet>();
         //
 
         // Booleans
@@ -35,6 +41,8 @@ namespace ExcelONE
 
         private void btnBrowse_Click(object sender, EventArgs e)
         {
+            mainPkgs.Clear();
+            mainWss.Clear();
             openExcel = new OpenFileDialog();
             openExcel.Filter = "Fichiers Excel (*.xlsx) | *xlsx";
             openExcel.Multiselect = true;
@@ -61,10 +69,7 @@ namespace ExcelONE
         {
             if (filesOpened)
             {
-                lblDebug.Text = "";
                 // Local variables
-                ExcelPackage[] mainPkgs = new ExcelPackage[filePaths.Count()];
-                ExcelWorksheet[] mainWss = new ExcelWorksheet[filePaths.Count()];
                 string fileName = "";
                 string fileYear = "";
                 string fileNature = "";
@@ -72,6 +77,7 @@ namespace ExcelONE
                 string fileSheet = "";
                 List<int> rowsToDelete = new List<int>();
                 int lastRow;
+                int iterations = 0;
                 // Indexes
                 int[] emptyCellIndex = new int[2] { -1, -1 };
                 int[] drIndex = new int[2];
@@ -83,9 +89,25 @@ namespace ExcelONE
                 int[] gpeIndex = new int[2];
                 int[] montantEchuIndex = new int[2];
                 int[] montantRegleIndex = new int[2];
-
-                int iterations = 0;
                 //
+
+                // Setting Packages and Worksheets using lists for dynamic size management
+                try
+                {
+                    foreach (string path in filePaths)
+                    {
+                        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                        mainPkgs.Add(new ExcelPackage(path));
+                    }
+                    for (int i = 0; i < mainPkgs.Count(); i++)
+                    {
+                        mainWss.Add(mainPkgs[i].Workbook.Worksheets[0]);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Exception rencontrée!\n\n" + ex, "Erreur!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
 
 
                 // Progress bar code
@@ -95,86 +117,228 @@ namespace ExcelONE
                 pbarInt++;
 
                 // Looping through each file
-
-                foreach (string path in filePaths)
+                try
                 {
-                    fileName = Path.GetFileNameWithoutExtension(path);
-                    fileYear = getYearAndNature(fileName)[0];
-                    fileNatureABBR = getYearAndNature(fileName)[1];
-                    if (fileNatureABBR == "EN")
+                    foreach (string path in filePaths)
                     {
-                        fileNature = "Energie";
-                    }
-                    if (fileNatureABBR == "TR")
-                    {
-                        fileNature = "Travaux";
-                    }
+                        // Retrieving basic file information
+                        fileName = Path.GetFileNameWithoutExtension(path);
+                        fileYear = getYearAndNature(fileName)[0];
+                        fileNatureABBR = getYearAndNature(fileName)[1];
 
-                    // Package
-                    mainPkgs[iterations] = new ExcelPackage(path);
-                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-
-                    // Worksheet
-                    mainWss[iterations] = mainPkgs[iterations].Workbook.Worksheets[0];
-                    fileSheet = mainWss[iterations].Name;
-
-                    // Indexes
-                    tcIndex = findCell(mainPkgs[iterations], fileSheet, "Type client");
-                    ccIndex = findCell(mainPkgs[iterations], fileSheet, "Classe de compte");
-                    gpeIndex = findCell(mainPkgs[iterations], fileSheet, "GpeStrReg");
-                    montantEchuIndex = findCell(mainPkgs[iterations], fileSheet, "Montant échu");
-                    montantRegleIndex = findCell(mainPkgs[iterations], fileSheet, "Montant réglé");
-
-
-                    // Deleting empty cc rows (rows that represent totals etc...)
-                    lastRow = mainWss[iterations].Dimension.End.Row;
-                    for (int row = ccIndex[0] + 1; row <= lastRow; row++)
-                    {
-                        if (mainWss[iterations].Cells[row, ccIndex[1]].Value == null || string.IsNullOrEmpty(mainWss[iterations].Cells[row, ccIndex[1]].Value.ToString()))
+                        // Finding file nature (Energie/Travaux)
+                        if (fileNatureABBR == "EN")
                         {
-                            rowsToDelete.Add(row);
+                            fileNature = "Energie";
                         }
-                    }
-                    foreach (int row in rowsToDelete.OrderByDescending(r => r))
-                    {
-                        mainWss[iterations].DeleteRow(row);
-                    }
-                    lastRow = mainWss[iterations].Dimension.End.Row;
+                        if (fileNatureABBR == "TR")
+                        {
+                            fileNature = "Travaux";
+                        }
 
-                    // Adding the 3 cells Annee Nature Concat
-                    if (findCell(mainPkgs[iterations], fileSheet, "Année").SequenceEqual(emptyCellIndex))
-                    {
-                        addColumnToTheRight(mainPkgs[iterations], fileSheet, "Année");
-                    }
-                    if (findCell(mainPkgs[iterations], fileSheet, "Nature").SequenceEqual(emptyCellIndex))
-                    {
-                        addColumnToTheRight(mainPkgs[iterations], fileSheet, "Nature");
-                    }
-                    if (findCell(mainPkgs[iterations], fileSheet, "Concat").SequenceEqual(emptyCellIndex))
-                    {
-                        addColumnToTheRight(mainPkgs[iterations], fileSheet, "Concat");
-                    }
-                    anneeIndex = findCell(mainPkgs[iterations], fileSheet, "Année");
-                    natureIndex = findCell(mainPkgs[iterations], fileSheet, "Nature");
-                    concatIndex = findCell(mainPkgs[iterations], fileSheet, "Concat");
+                        // Worksheet
+                        fileSheet = mainWss[iterations].Name;
 
-                    // Filling Annee and Nature
-                    mainWss[iterations].Cells[anneeIndex[0] + 1, anneeIndex[1], lastRow, anneeIndex[1]].Value = fileYear;
-                    mainWss[iterations].Cells[natureIndex[0] + 1, natureIndex[1], lastRow, natureIndex[1]].Value = fileNature;
+                        // Deleting empty cc rows (rows that represent totals etc...)
+                        ccIndex = findCell(mainPkgs[iterations], fileSheet, "Classe de compte"); // Finding ccIndex
+                        lastRow = mainWss[iterations].Dimension.End.Row; // Finding Last Row
+                        for (int row = ccIndex[0] + 1; row <= lastRow; row++)
+                        {
+                            if (mainWss[iterations].Cells[row, ccIndex[1]].Value == null || string.IsNullOrEmpty(mainWss[iterations].Cells[row, ccIndex[1]].Value.ToString()))
+                            {
+                                rowsToDelete.Add(row); // Adding to a list so it can be removed later
+                            }
+                        }
+                        foreach (int row in rowsToDelete.OrderByDescending(r => r))
+                        {
+                            mainWss[iterations].DeleteRow(row); // Deleting items in the list
+                        }
+                        lastRow = mainWss[iterations].Dimension.End.Row; // Resetting Last Row (because there are less rows now)
 
-                    rowsToDelete.Clear();
-                    mainPkgs[iterations].Save();
-                    iterations++;
+                        // Adding the 3 cells Annee Nature Concat
+                        if (findCell(mainPkgs[iterations], fileSheet, "Année").SequenceEqual(emptyCellIndex))
+                        {
+                            addColumnToTheRight(mainPkgs[iterations], fileSheet, "Année");
+                        }
+                        if (findCell(mainPkgs[iterations], fileSheet, "Nature").SequenceEqual(emptyCellIndex))
+                        {
+                            addColumnToTheRight(mainPkgs[iterations], fileSheet, "Nature");
+                        }
+                        if (findCell(mainPkgs[iterations], fileSheet, "Concat").SequenceEqual(emptyCellIndex))
+                        {
+                            addColumnToTheRight(mainPkgs[iterations], fileSheet, "Concat");
+                        }
 
-                    if (pbarMain.Value + pbarInt > 100) { pbarMain.Value = 100;}
-                    else { pbarMain.Value += pbarInt; }
+                        // Setting indexes
+                        anneeIndex = findCell(mainPkgs[iterations], fileSheet, "Année");
+                        natureIndex = findCell(mainPkgs[iterations], fileSheet, "Nature");
+                        concatIndex = findCell(mainPkgs[iterations], fileSheet, "Concat");
+                        tcIndex = findCell(mainPkgs[iterations], fileSheet, "Type client");
+                        gpeIndex = findCell(mainPkgs[iterations], fileSheet, "GpeStrReg");
+                        montantEchuIndex = findCell(mainPkgs[iterations], fileSheet, "Montant échu");
+                        montantRegleIndex = findCell(mainPkgs[iterations], fileSheet, "Montant réglé");
+
+                        // Filling Annee and Nature
+                        mainWss[iterations].Cells[anneeIndex[0] + 1, anneeIndex[1], lastRow, anneeIndex[1]].Value = fileYear;
+                        mainWss[iterations].Cells[natureIndex[0] + 1, natureIndex[1], lastRow, natureIndex[1]].Value = fileNature;
+
+                        // Changing Type Client accordingly
+                        for (int row = tcIndex[0] + 1; row <= lastRow; row++)
+                        {
+                            var tcValue = mainWss[iterations].Cells[row, tcIndex[1]].Value;
+                            switch (tcValue)
+                            {
+                                case "BT":
+                                case "CB":
+                                case "CX":
+                                case "EB":
+                                case "EC":
+                                case "EP":
+                                case "NA":
+                                case "PP":
+                                    mainWss[iterations].Cells[row, tcIndex[1]].Value = "BT";
+                                    break;
+                                case "MT":
+                                case "CM":
+                                case "EM":
+                                case "GC":
+                                case "HT":
+                                    mainWss[iterations].Cells[row, tcIndex[1]].Value = "MT";
+                                    break;
+                            }
+                        }
+
+                        // Changing Classe de Compte accordingly
+                        if (fileNatureABBR == "EN") // For Energie
+                        {
+                            for (int row = ccIndex[0] + 1; row <= lastRow; row++)
+                            {
+                                var ccValue = mainWss[iterations].Cells[row, ccIndex[1]].Value;
+                                switch (ccValue)
+                                {
+                                    case "PALAIS ROYAL":
+                                    case "Administrations":
+                                        mainWss[iterations].Cells[row, ccIndex[1]].Value = "Administrations";
+                                        break;
+                                    case "Autres Etablissements  Publics":
+                                    case "Stés nationales":
+                                        mainWss[iterations].Cells[row, ccIndex[1]].Value = "Stés nationales";
+                                        break;
+                                    case "Clients occasionnels":
+                                    case "Particuliers":
+                                        mainWss[iterations].Cells[row, ccIndex[1]].Value = "Particuliers";
+                                        break;
+                                    case "Multi-Contrats (Régl Reg) Autres":
+                                        mainWss[iterations].Cells[row, ccIndex[1]].Value = "Multi-Contrats (Régl Regional)";
+                                        break;
+                                    case "Multi-Contrats(Régl Centr)Administration":
+                                        mainWss[iterations].Cells[row, ccIndex[1]].Value = "Multi-Contrats(Régl Centr)Administration";
+                                        break;
+                                }
+                            }
+                        }
+
+
+                        if (fileNatureABBR == "TR") // For Travaux
+                        {
+                            for (int row = ccIndex[0] + 1; row <= lastRow; row++)
+                            {
+                                var ccValue = mainWss[iterations].Cells[row, ccIndex[1]].Value;
+                                switch (ccValue)
+                                {
+                                    case "Administrations":
+                                        mainWss[iterations].Cells[row, ccIndex[1]].Value = "Administrations";
+                                        break;
+                                    case "Autres Etablissements  Publics":
+                                        mainWss[iterations].Cells[row, ccIndex[1]].Value = "Stés nationales";
+                                        break;
+                                    case "Les agents ONE":
+                                        mainWss[iterations].Cells[row, ccIndex[1]].Value = "Particuliers";
+                                        break;
+                                    case "Multi-Contrats (Régl Reg) Autres":
+                                        mainWss[iterations].Cells[row, ccIndex[1]].Value = "Multi-Contrats (Régl Regional)";
+                                        break;
+                                }
+                            }
+                        }
+
+
+
+                        // Dividing montants by 1000
+                        for (int row = montantEchuIndex[0] + 1; row <= lastRow; row++)
+                        {
+                            var montantToDecimal = Convert.ToDecimal(mainWss[iterations].Cells[row, montantEchuIndex[1]].Value);
+                            mainWss[iterations].Cells[row, montantEchuIndex[1]].Value = montantToDecimal / 1000;
+                        }
+
+                        for (int row = montantRegleIndex[0] + 1; row <= lastRow; row++)
+                        {
+                            var montantToDecimal = Convert.ToDecimal(mainWss[iterations].Cells[row, montantRegleIndex[1]].Value);
+                            mainWss[iterations].Cells[row, montantRegleIndex[1]].Value = montantToDecimal / 1000;
+                        }
+
+                        // Changing GpeStrReg Accordingly
+                        for (int row = gpeIndex[0] + 1; row <= lastRow; row++)
+                        {
+                            var grpValue = mainWss[iterations].Cells[row, gpeIndex[1]].Value;
+                            if (grpValue != null)
+                            {
+                                if (grpValue.ToString() == "AGENCE DE SERVICES PROVINCIALE LAAYOUNE")
+                                {
+                                    mainWss[iterations].Cells[row, gpeIndex[1]].Value = "Agence de Services Provinciale Laâyoune";
+                                }
+                                if (grpValue.ToString() == "AGENCE DE SERVICES LAKHSSASS")
+                                {
+                                    mainWss[iterations].Cells[row, gpeIndex[1]].Value = "AGENCE DE SERVICES T. LAKHSSASS";
+                                }
+                                if (grpValue.ToString() == "SUCCURSALE BIR GANDOUZ")
+                                {
+                                    mainWss[iterations].Cells[row, gpeIndex[1]].Value = "Succursale Bir Gandouz";
+                                }
+                            }
+                        }
+
+                        // Filling Concat Column
+                        for (int row = concatIndex[0] + 1; row <= lastRow; row++)
+                        {
+                            var agenceValue = mainWss[iterations].Cells[row, gpeIndex[1]].Value;
+                            var ccValue = mainWss[iterations].Cells[row, ccIndex[1]].Value;
+                            var tcValue = mainWss[iterations].Cells[row, tcIndex[1]].Value;
+                            if (agenceValue != null && ccValue != null && tcValue != null)
+                            {
+                                agenceValue = agenceValue.ToString();
+                                ccValue = ccValue.ToString();
+                                tcValue = tcValue.ToString();
+                                mainWss[iterations].Cells[row, concatIndex[1]].Value = agenceValue + fileNature + ccValue + tcValue;
+                            }
+                        }
+                        mainWss[iterations].Column(concatIndex[1]).AutoFit();
+                        mainWss[iterations].Column(concatIndex[1]).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+
+
+
+
+                        rowsToDelete.Clear(); // Resetting this list so it can be used by next package
+                        mainPkgs[iterations].Save(); // Saving modifications
+                        iterations++; // Iterating through the files
+
+                        if (pbarMain.Value + pbarInt > 100) { pbarMain.Value = 100; }
+                        else { pbarMain.Value += pbarInt; }
+                    }               // foreach
+
+                    MessageBox.Show("Les fichiers selectionnées sont modifiées!", "Modification de fichiers", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Exception rencontrée!\n\n" + ex, "Erreur!", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         } //private void btnModify_Click(object sender, EventArgs e)
 
 
 
-        // Global methods
+        // // // Global methods
 
 
         // getYearAndNature
