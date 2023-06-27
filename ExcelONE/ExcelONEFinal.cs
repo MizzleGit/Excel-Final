@@ -1,14 +1,15 @@
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using OfficeOpenXml.Table.PivotTable;
+using Excel = Microsoft.Office.Interop.Excel;
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace ExcelONE
 {
     public partial class ExcelONEFinal : Form
     {
-
         // Variables
         // // String arrays and lists
         string[]? filePaths = null;
@@ -22,6 +23,7 @@ namespace ExcelONE
         // // Strings
         string folderPath = "";
         string fileName = "";
+        string masterPathGlobal = "";
         // //
 
         // // Excel variables
@@ -337,8 +339,9 @@ namespace ExcelONE
                         mainWss[iterations].Column(concatIndex[1]).AutoFit();
                         mainWss[iterations].Column(concatIndex[1]).Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
-
-
+                        //
+                        //
+                        //
 
                         rowsToDelete.Clear(); // Resetting this list so it can be used by next package
                         mainPkgs[iterations].Save(); // Saving modifications
@@ -347,8 +350,6 @@ namespace ExcelONE
                         if (pbarMain.Value + pbarInt > 100) { pbarMain.Value = 100; }
                         else { pbarMain.Value += pbarInt; }
                     }               // foreach
-                    lblDebug.Text = "";
-                    lblDebug.Text += OnlyFourValues(fileYears);
                     if (tryPassed) { MessageBox.Show("Les fichiers selectionnées sont modifiées!", "Modification de fichiers", MessageBoxButtons.OK, MessageBoxIcon.Information); }
                 }
 
@@ -416,11 +417,17 @@ namespace ExcelONE
                     masterMontantE.Function = DataFieldFunctions.Sum;
                     masterMontantR.Function = DataFieldFunctions.Sum;
                     pbarMain.Value = 90;
+                    foreach (ExcelPackage pkg in mainPkgs)
+                    {
+                        pkg.Dispose();
+                    }
                     try
                     {
+                        masterPath = folderPath + "/global.xlsx";
                         masterPkg.SaveAs(folderPath + "/global.xlsx");
                         pbarMain.Value = 100;
-                        MessageBox.Show("Le fichier global a été crée!", "Fichier global", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        masterPathGlobal = masterPkg.File.FullName;
+                        MessageBox.Show("Le fichier global a été crée! Merci de vérifier le dossier original.", "Fichier global", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch
                     {
@@ -428,7 +435,8 @@ namespace ExcelONE
                         masterPath = Path.Combine(folderPath, "global.xlsx");
                         masterPkg.SaveAs(masterPath);
                         pbarMain.Value = 100;
-                        MessageBox.Show("Le fichier global a été crée!", "Fichier global", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        masterPathGlobal = masterPkg.File.FullName;
+                        MessageBox.Show("Le fichier global a été crée! Merci de vérifier votre bureau.", "Fichier global", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
                 catch (Exception ex)
@@ -444,8 +452,152 @@ namespace ExcelONE
 
         private void btnDestination_Click(object sender, EventArgs e)
         {
-            //
-        }
+            // Variables
+            string destinationPath = "";
+            string destinationName = "";
+            bool noConcat = false;
+            bool donneeFound = false;
+
+            Thread.Sleep(500);
+            openDestination = new OpenFileDialog();
+            openDestination.Filter = "Excel Files (*.xlsx) | *.xlsx";
+            if (openDestination.ShowDialog() == DialogResult.OK)
+            {
+
+                // Getting general file data
+                destinationPath = openDestination.FileName;
+                destinationName = Path.GetFileNameWithoutExtension(destinationPath);
+
+                // Opening Pivot
+                Excel.Application pivotApp = new Excel.Application();
+                Excel.Workbook pivotWorkbook = pivotApp.Workbooks.Open(masterPathGlobal, ReadOnly: false);
+                Excel.Worksheet pivotWs = (Excel.Worksheet)pivotWorkbook.Sheets[2];
+                pivotWs.Activate();
+                Excel.Range pivotRange = pivotWs.UsedRange;
+                Excel.Application destinationApp = new Excel.Application();
+                Excel.Workbook destinationWorkbook = destinationApp.Workbooks.Open(destinationPath, ReadOnly: false);
+                foreach (Excel.Worksheet worksheet in destinationWorkbook.Worksheets)
+                {
+                    if (worksheet.Name == "données TR")
+                    {
+                        donneeFound = true;
+                        // Finding worksheet and selecting used range
+                        Excel.Worksheet destinationSheet = (Excel.Worksheet)destinationWorkbook.Sheets["données TR"];
+                        Excel.Range destinationRange = destinationSheet.UsedRange;
+
+                        // Resetting progress bar
+                        pbarMain.Value = 0;
+
+                        // Finding Concat in destination folder
+                        Excel.Range concatRange = destinationRange.Find("Concat");
+                        if (concatRange == null) { noConcat = true; break; }
+
+                        // Setting indexes for concat range
+                        int crFirstRow = concatRange.Row + 1;
+                        int crCol = concatRange.Column;
+
+                        // Finding last used row
+                        Excel.Range concatUsed = concatRange.End[Excel.XlDirection.xlDown];
+                        int concatLastRow = concatUsed.Row + concatUsed.Rows.Count - 1;
+
+                        // Indexing concat and year columns
+                        pbarMain.Value++;
+                        Excel.Range colToFind = (Excel.Range)destinationSheet.Range[destinationSheet.Cells[crFirstRow, crCol], destinationSheet.Cells[concatLastRow, crCol]];
+                        pbarMain.Value++;
+                        Excel.Range colToChange1 = (Excel.Range)destinationSheet.Range[destinationSheet.Cells[crFirstRow, crCol + 1], destinationSheet.Cells[concatLastRow, crCol + 1]];
+                        pbarMain.Value++;
+                        Excel.Range colToChange2 = (Excel.Range)destinationSheet.Range[destinationSheet.Cells[crFirstRow, crCol + 2], destinationSheet.Cells[concatLastRow, crCol + 2]];
+                        pbarMain.Value++;
+                        Excel.Range colToChange3 = (Excel.Range)destinationSheet.Range[destinationSheet.Cells[crFirstRow, crCol + 3], destinationSheet.Cells[concatLastRow, crCol + 3]];
+                        pbarMain.Value++;
+                        Excel.Range colToChange4 = (Excel.Range)destinationSheet.Range[destinationSheet.Cells[crFirstRow, crCol + 4], destinationSheet.Cells[concatLastRow, crCol + 4]];
+                        pbarMain.Value++;
+                        Excel.Range colToChange5 = (Excel.Range)destinationSheet.Range[destinationSheet.Cells[crFirstRow, crCol + 5], destinationSheet.Cells[concatLastRow, crCol + 5]];
+                        pbarMain.Value++;
+                        Excel.Range colToChange6 = (Excel.Range)destinationSheet.Range[destinationSheet.Cells[crFirstRow, crCol + 6], destinationSheet.Cells[concatLastRow, crCol + 6]];
+                        pbarMain.Value++;
+                        Excel.Range colToChange7 = (Excel.Range)destinationSheet.Range[destinationSheet.Cells[crFirstRow, crCol + 7], destinationSheet.Cells[concatLastRow, crCol + 7]];
+                        pbarMain.Value = 9;
+                        Excel.Range colToChange8 = (Excel.Range)destinationSheet.Range[destinationSheet.Cells[crFirstRow, crCol + 8], destinationSheet.Cells[concatLastRow, crCol + 8]];
+                        pbarMain.Value = 10;
+
+                        lblWait.Visible = true;
+
+                        colToChange1.Value = pivotApp.WorksheetFunction.VLookup(colToFind, pivotRange, 2, 0);
+                        pbarMain.Value = 15;
+                        colToChange2.Value = pivotApp.WorksheetFunction.VLookup(colToFind, pivotRange, 3, 0);
+                        pbarMain.Value = 20;
+                        colToChange3.Value = pivotApp.WorksheetFunction.VLookup(colToFind, pivotRange, 4, 0);
+                        pbarMain.Value = 30;
+                        colToChange4.Value = pivotApp.WorksheetFunction.VLookup(colToFind, pivotRange, 5, 0);
+                        pbarMain.Value = 40;
+                        colToChange5.Value = pivotApp.WorksheetFunction.VLookup(colToFind, pivotRange, 6, 0);
+                        pbarMain.Value = 50;
+                        colToChange6.Value = pivotApp.WorksheetFunction.VLookup(colToFind, pivotRange, 7, 0);
+                        pbarMain.Value = 60;
+                        colToChange7.Value = pivotApp.WorksheetFunction.VLookup(colToFind, pivotRange, 8, 0);
+                        pbarMain.Value = 70;
+                        colToChange8.Value = pivotApp.WorksheetFunction.VLookup(colToFind, pivotRange, 9, 0);
+                        pbarMain.Value = 80;
+
+                        // Fixing null errors for empty cells
+                        Excel.Range[] ranges = new Excel.Range[] { colToChange1, colToChange2, colToChange3, colToChange4, colToChange5, colToChange6, colToChange7, colToChange8 };
+                        foreach (Excel.Range range in ranges)
+                        {
+                            foreach (Excel.Range cell in range)
+                            {
+                                if (cell.Value == -2146826246.00)
+                                {
+                                    cell.Value = 0;
+                                }
+                            }
+                        }
+                        pbarMain.Value = 90;
+
+                        // Saving changes and closing
+                        pivotWorkbook.Close(SaveChanges: true);
+                        destinationWorkbook.Close(SaveChanges: true);
+                        pivotApp.Quit();
+                        destinationApp.Quit();
+                        pbarMain.Value = 99;
+
+                        // Releasing COM Objects
+                        Marshal.ReleaseComObject(colToChange1);
+                        Marshal.ReleaseComObject(colToChange2);
+                        Marshal.ReleaseComObject(colToChange3);
+                        Marshal.ReleaseComObject(colToChange4);
+                        Marshal.ReleaseComObject(colToChange5);
+                        Marshal.ReleaseComObject(colToChange6);
+                        Marshal.ReleaseComObject(colToChange7);
+                        Marshal.ReleaseComObject(colToChange8);
+                        Marshal.ReleaseComObject(colToFind);
+                        Marshal.ReleaseComObject(concatRange);
+                        Marshal.ReleaseComObject(pivotWs);
+                        Marshal.ReleaseComObject(destinationSheet);
+                        Marshal.ReleaseComObject(pivotWs);
+                        Marshal.ReleaseComObject(destinationRange);
+                        Marshal.ReleaseComObject(pivotWorkbook);
+                        Marshal.ReleaseComObject(destinationWorkbook);
+                        Marshal.ReleaseComObject(pivotApp);
+                        Marshal.ReleaseComObject(destinationApp);
+                        pbarMain.Value = 100;
+                        MessageBox.Show("La feuil a été modifié\n\nMerci de fermer le programme avant de l'utiliser une autre fois", destinationName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                        // Breaking after finding données TR
+                        break;
+                    }
+                } // foreach
+                if (!donneeFound)
+                {
+                    MessageBox.Show("Erreur, données TR n'existe pas dans ce fichier", "Erreur!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                if (noConcat)
+                {
+                    MessageBox.Show("'Concat' n'a pas été trouvé. Assurez-vous de nommer la cellule vide 'Concat' avec un C majuscule.", "Erreur!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                lblWait.Visible = false;
+            } // if Dialog
+        } // private void btnDestination_Click(object sender, EventArgs e)
 
 
 
