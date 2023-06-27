@@ -36,6 +36,10 @@
             lblDebug = new Label();
             btnGlobal = new Button();
             tipBtnBrowse = new ToolTip(components);
+            tipBtnModify = new ToolTip(components);
+            tipBtnGlobal = new ToolTip(components);
+            btnDestination = new Button();
+            tipBtnDestination = new ToolTip(components);
             SuspendLayout();
             // 
             // btnBrowse
@@ -45,7 +49,7 @@
             btnBrowse.Size = new Size(326, 168);
             btnBrowse.TabIndex = 0;
             btnBrowse.Text = "1. Ouvrir fichiers";
-            tipBtnBrowse.SetToolTip(btnBrowse, "Cliquez ici pour sélectionner les fichiers que vous souhaitez modifier!");
+            tipBtnBrowse.SetToolTip(btnBrowse, "Cliquez ici pour sélectionner les fichiers que vous souhaitez modifier.");
             btnBrowse.UseVisualStyleBackColor = true;
             btnBrowse.Click += btnBrowse_Click;
             // 
@@ -60,6 +64,7 @@
             btnModify.Size = new Size(328, 168);
             btnModify.TabIndex = 1;
             btnModify.Text = "2. Modifier les fichiers";
+            tipBtnModify.SetToolTip(btnModify, "Cliquez ici si vous souhaitez appliquer des modifications aux fichiers.");
             btnModify.UseVisualStyleBackColor = true;
             btnModify.Click += btnModify_Click;
             // 
@@ -87,13 +92,26 @@
             btnGlobal.Size = new Size(326, 168);
             btnGlobal.TabIndex = 4;
             btnGlobal.Text = "3. Créer un fichier global";
+            tipBtnGlobal.SetToolTip(btnGlobal, "Cliquez ici pour créer un fichier global. Assurez-vous d'avoir sélectionné exactement 8 fichiers.");
             btnGlobal.UseVisualStyleBackColor = true;
+            btnGlobal.Click += btnGlobal_Click;
+            // 
+            // btnDestination
+            // 
+            btnDestination.Location = new Point(357, 217);
+            btnDestination.Name = "btnDestination";
+            btnDestination.Size = new Size(328, 168);
+            btnDestination.TabIndex = 5;
+            btnDestination.Text = "4. Modifiez le fichier de destination.";
+            tipBtnDestination.SetToolTip(btnDestination, "Utilisez la fonction VLOOKUP sur globa.xlsx pour appliquer les modifications sur les données TR.");
+            btnDestination.UseVisualStyleBackColor = true;
             // 
             // ExcelONEFinal
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 475);
+            Controls.Add(btnDestination);
             Controls.Add(btnGlobal);
             Controls.Add(lblDebug);
             Controls.Add(pbarMain);
@@ -114,5 +132,9 @@
         private Label lblDebug;
         private Button btnGlobal;
         private ToolTip tipBtnBrowse;
+        private ToolTip tipBtnModify;
+        private ToolTip tipBtnGlobal;
+        private Button btnDestination;
+        private ToolTip tipBtnDestination;
     }
 }

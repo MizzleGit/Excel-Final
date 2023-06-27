@@ -1,5 +1,6 @@
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using OfficeOpenXml.Table.PivotTable;
 using System;
 using System.Diagnostics;
 
@@ -9,23 +10,28 @@ namespace ExcelONE
     {
 
         // Variables
-        // String arrays
+        // // String arrays and lists
         string[]? filePaths = null;
-        //
+        List<string> fileYears = new List<string>();
+        // //
 
-        // Strings
+        // // Integers
+        int numYears;
+        // //
+
+        // // Strings
         string folderPath = "";
         string fileName = "";
-        //
+        // //
 
-        // Excel variables
+        // // Excel variables
         List<ExcelPackage> mainPkgs = new List<ExcelPackage>();
         List<ExcelWorksheet> mainWss = new List<ExcelWorksheet>();
-        //
+        // //
 
-        // Booleans
+        // // Booleans
         bool filesOpened = false;
-        //
+        // //
         //
 
         public ExcelONEFinal()
@@ -78,6 +84,7 @@ namespace ExcelONE
                 List<int> rowsToDelete = new List<int>();
                 int lastRow;
                 int iterations = 0;
+                bool tryPassed = false;
                 // Indexes
                 int[] emptyCellIndex = new int[2] { -1, -1 };
                 int[] drIndex = new int[2];
@@ -94,6 +101,8 @@ namespace ExcelONE
                 // Setting Packages and Worksheets using lists for dynamic size management
                 try
                 {
+                    mainPkgs.Clear();
+                    mainWss.Clear();
                     foreach (string path in filePaths)
                     {
                         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -103,6 +112,8 @@ namespace ExcelONE
                     {
                         mainWss.Add(mainPkgs[i].Workbook.Worksheets[0]);
                     }
+                    tryPassed = true;
+
                 }
                 catch (Exception ex)
                 {
@@ -119,12 +130,17 @@ namespace ExcelONE
                 // Looping through each file
                 try
                 {
+                    // Clearing the years list
+                    fileYears.Clear();
                     foreach (string path in filePaths)
                     {
                         // Retrieving basic file information
                         fileName = Path.GetFileNameWithoutExtension(path);
                         fileYear = getYearAndNature(fileName)[0];
                         fileNatureABBR = getYearAndNature(fileName)[1];
+
+                        // Adding year to years list for global file button
+                        fileYears.Add(fileYear);
 
                         // Finding file nature (Energie/Travaux)
                         if (fileNatureABBR == "EN")
@@ -138,6 +154,12 @@ namespace ExcelONE
 
                         // Worksheet
                         fileSheet = mainWss[iterations].Name;
+
+                        // Skipping the file if it already has Annee in it | | | Annee was picked randomly, this is to ensure files don't get modified twice which can give wrong resutls
+                        if (!findCell(mainPkgs[iterations], fileSheet, "Année").SequenceEqual(emptyCellIndex))
+                        {
+                            continue;
+                        }
 
                         // Deleting empty cc rows (rows that represent totals etc...)
                         ccIndex = findCell(mainPkgs[iterations], fileSheet, "Classe de compte"); // Finding ccIndex
@@ -325,8 +347,9 @@ namespace ExcelONE
                         if (pbarMain.Value + pbarInt > 100) { pbarMain.Value = 100; }
                         else { pbarMain.Value += pbarInt; }
                     }               // foreach
-
-                    MessageBox.Show("Les fichiers selectionnées sont modifiées!", "Modification de fichiers", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    lblDebug.Text = "";
+                    lblDebug.Text += OnlyFourValues(fileYears);
+                    if (tryPassed) { MessageBox.Show("Les fichiers selectionnées sont modifiées!", "Modification de fichiers", MessageBoxButtons.OK, MessageBoxIcon.Information); }
                 }
 
                 catch (Exception ex)
@@ -334,7 +357,81 @@ namespace ExcelONE
                     MessageBox.Show("Exception rencontrée!\n\n" + ex, "Erreur!", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+            else { MessageBox.Show("Ouvrez d'abord un ou plusieurs fichiers!", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error); }
         } //private void btnModify_Click(object sender, EventArgs e)
+
+        //
+        //
+        //
+
+        private void btnGlobal_Click(object sender, EventArgs e)
+        {
+            if (!OnlyFourValues(fileYears) || mainPkgs.Count != 8) // Ensuring exactly 8 files with exactly 4 different years are put into global file
+            {
+                MessageBox.Show("Assurez-vous qu'il n'y ait que 8 fichiers sélectionnés et que seules 4 années soient utilisées pour chaque nature!", "Erreur!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            else
+            {
+                // Variables
+                ExcelPackage masterPkg = new ExcelPackage();
+                ExcelWorksheet masterWs = masterPkg.Workbook.Worksheets.Add("Master");
+                ExcelRange header = mainWss[0].Cells[mainWss[0].Dimension.Start.Row, mainWss[0].Dimension.Start.Column, mainWss[0].Dimension.Start.Row, mainWss[0].Dimension.End.Column];
+                ExcelRange[] masterData = new ExcelRange[8];
+                string[] fourFileYears = GetOnlyFourValues(fileYears);
+                string masterPath = "";
+                bool tryPassed = false;
+
+                // Adding all data into an ExcelRange Array
+                for (int i = 0; i < 8; i++)
+                {
+                    masterData[i] = mainWss[i].Cells[mainWss[i].Dimension.Start.Row + 1, mainWss[i].Dimension.Start.Column, mainWss[i].Dimension.End.Row, mainWss[i].Dimension.End.Column];
+                }
+
+                // Creating the master file
+                try
+                {
+                    header.Copy(masterWs.Cells[1, 1]);
+                    for (int i = 0; i < 8; i++)
+                    {
+                        masterData[i].Copy(masterWs.Cells[masterWs.Dimension.End.Row + 1, masterWs.Dimension.Start.Column]);
+                    }
+                    for (int i = 1; i <= masterWs.Dimension.End.Column; i++)
+                    {
+                        masterWs.Column(i).AutoFit();
+                    }
+                    masterWs.Column(masterWs.Dimension.End.Column).Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Right;
+                    ExcelWorksheet masterPivotWs = masterPkg.Workbook.Worksheets.Add("Pivot");
+                    ExcelRange masterUsedRange = masterWs.Cells[masterWs.Dimension.Start.Row, masterWs.Dimension.Start.Column, masterWs.Dimension.End.Row, masterWs.Dimension.End.Column];
+                    ExcelPivotTable masterPivot = masterPivotWs.PivotTables.Add(masterPivotWs.Cells[1, 1], masterUsedRange, "Pivot");
+                    masterPivot.DataOnRows = false;
+                    masterPivot.ColumnGrandTotals = false;
+                    masterPivot.RowGrandTotals = false;
+                    masterPivot.RowFields.Add(masterPivot.Fields["Concat"]);
+                    masterPivot.ColumnFields.Add(masterPivot.Fields["Année"]);
+                    ExcelPivotTableDataField masterMontantE = masterPivot.DataFields.Add(masterPivot.Fields["Montant échu"]);
+                    ExcelPivotTableDataField masterMontantR = masterPivot.DataFields.Add(masterPivot.Fields["Montant réglé"]);
+                    masterMontantE.Function = DataFieldFunctions.Sum;
+                    masterMontantR.Function = DataFieldFunctions.Sum;
+                    try
+                    {
+                        masterPkg.SaveAs(folderPath + "/global.xlsx");
+                    }
+                    finally
+                    {
+                        folderPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                        masterPath = Path.Combine(folderPath, "global.xlsx");
+                        masterPkg.SaveAs(masterPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Exception rencontrée!\n\n" + ex, "Erreur!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+
+
 
 
 
@@ -413,6 +510,41 @@ namespace ExcelONE
         }
         // addColumnToTheRight
 
+        // OnlyFourValues
+        bool OnlyFourValues(List<string> fnEnteredYears)
+        {
+            List<string> fnYears = new List<string>();
+            foreach (string fnYear in fnEnteredYears)
+            {
+                if (!fnYears.Contains(fnYear))
+                {
+                    fnYears.Add(fnYear);
+                }
+            }
+            if (fnYears.Count == 4)
+            {
+                return true;
+            }
+            return false;
+        }
+        // OnlyFourValues
+
+        // GetOnlyFourValues
+        string[] GetOnlyFourValues(List<string> fnEnteredYears)
+        {
+            List<string> fnYears = new List<string>();
+            foreach (string fnYear in fnEnteredYears)
+            {
+                if (!fnYears.Contains(fnYear))
+                {
+                    fnYears.Add(fnYear);
+                }
+            }
+            string[] fnYearsArray = fnYears.ToArray();
+            Array.Sort(fnYearsArray);
+            return fnYearsArray;
+        }
+        // GetOnlyFourValues
 
 
     } // public partial class ExcelONEFinal : Form
